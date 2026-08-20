@@ -1,0 +1,29 @@
+[
+    {
+        "id": 1,
+        "name": "Corte clásico",
+        "description": "Corte de cabello tradicional con acabado a tijera y máquina.",
+        "duration": 45,
+        "price": 150,
+        "category": "Corte de cabello",
+        "available": true
+    },
+    {
+        "id": 2,
+        "name": "Perfilado de barba",
+        "description": "Diseño y perfilado de barba con toalla caliente.",
+        "duration": 30,
+        "price": 100,
+        "category": "Barba",
+        "available": true
+    },
+    {
+        "id": 3,
+        "name": "Corte y barba",
+        "description": "Corte de cabello combinado con perfilado y arreglo de barba.",
+        "duration": 75,
+        "price": 220,
+        "category": "Combo",
+        "available": true
+    }
+]
