@@ -9,7 +9,6 @@ Proyecto en Node.js con ESM que implementa la clase `ServiceManager`, encargada 
 
 ```bash
    git clone https://github.com/DavidZD02/Administrador-de-servicios.git
-   cd https://github.com/DavidZD02/Administrador-de-servicios
 ```
 
 2. Instalar las dependencias:
