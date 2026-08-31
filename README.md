@@ -37,10 +37,10 @@ Si falta alguna variable requerida, la aplicación no arrancará y mostrará un 
 ## Ejecución
 
 ```bash
-node app.js
+npm run dev
 ```
 
-Esto carga la configuración, valida las variables de entorno, instancia `ServiceManager` y ejecuta una demostración de sus métodos por consola.
+Esto arranca el servidor Express en el puerto configurado (`http://localhost:8080` por defecto).
 
 ## Recurso: `services`
 
@@ -58,63 +58,152 @@ Cada servicio tiene la siguiente forma:
 }
 ```
 
-## Uso de `ServiceManager`
+## Endpoints de la API
 
-```js
-import ServiceManager from "./src/managers/ServiceManager.js";
+Base URL: `http://localhost:8080/api/services`
 
-const manager = new ServiceManager();
+### `GET /api/services`
+
+Devuelve todos los servicios. Acepta filtros opcionales por query params, combinables entre sí:
+
+- `?category=Barba` — filtra por categoría
+- `?available=true` — filtra por disponibilidad
+
+**Respuesta (200):**
+```json
+{
+  "status": "success",
+  "services": [
+    {
+      "id": 1,
+      "name": "Corte clásico",
+      "description": "Corte de cabello tradicional con acabado a tijera y máquina.",
+      "duration": 45,
+      "price": 150,
+      "category": "Corte de cabello",
+      "available": true
+    }
+  ]
+}
 ```
 
-### `getServices()`
+### `GET /api/services/:sid`
 
-Devuelve todos los servicios registrados.
+Devuelve el servicio con el `id` indicado.
 
-```js
-const servicios = manager.getServices();
-console.log(servicios);
+**Respuesta (200):**
+```json
+{
+  "status": "success",
+  "services": { "id": 1, "name": "Corte clásico", "...": "..." }
+}
 ```
 
-### `getServiceById(id)`
-
-Devuelve el servicio con el `id` indicado, o `null` si no existe.
-
-```js
-const servicio = manager.getServiceById(1);
-console.log(servicio); // { id: 1, name: "Corte clásico", ... } o null
+**Respuesta (404) — el servicio no existe:**
+```json
+{
+  "status": "error",
+  "message": "Servicio no encontrado"
+}
 ```
 
-### `addService(serviceData)`
+### `POST /api/services`
 
-Agrega un nuevo servicio. El `id` se genera automáticamente. Todos los campos (`name`, `description`, `duration`, `price`, `category`, `available`) son obligatorios; si falta alguno, lanza un error.
+Crea un nuevo servicio. El `id` se genera automáticamente; todos los demás campos son obligatorios.
 
-```js
-const nuevoServicio = manager.addService({
-  name: "Corte de cabello",
-  description: "Corte de cabello para hombres y mujeres",
-  duration: 30,
-  price: 20,
-  category: "Cabello",
-  available: true,
-});
-
-console.log(nuevoServicio); // incluye el id generado automáticamente
+**Body de ejemplo:**
+```json
+{
+  "name": "Corte de cabello",
+  "description": "Corte de cabello para hombres y mujeres",
+  "duration": 30,
+  "price": 20,
+  "category": "Cabello",
+  "available": true
+}
 ```
 
-### `updateService(id, updatedData)`
-
-Actualiza un servicio existente. No permite modificar el `id`. Lanza un error si el servicio no existe.
-
-```js
-const actualizado = manager.updateService(1, { price: 25 });
-console.log(actualizado);
+**Respuesta (201):**
+```json
+{
+  "status": "success",
+  "services": {
+    "id": 4,
+    "name": "Corte de cabello",
+    "description": "Corte de cabello para hombres y mujeres",
+    "duration": 30,
+    "price": 20,
+    "category": "Cabello",
+    "available": true
+  }
+}
 ```
 
-### `deleteService(id)`
+**Respuesta (400) — faltan campos requeridos:**
+```json
+{
+  "status": "error",
+  "message": "Faltan los siguientes campos requeridos: description, duration"
+}
+```
 
-Elimina el servicio con el `id` indicado. Lanza un error si no existe.
+### `PUT /api/services/:sid`
 
-```js
-const resultado = manager.deleteService(1);
-console.log(resultado); // { message: "Servicio con id 1 eliminado correctamente" }
+Actualiza un servicio existente. No permite modificar el `id`, aunque se envíe en el body.
+
+**Body de ejemplo:**
+```json
+{ "price": 25 }
+```
+
+**Respuesta (200):**
+```json
+{
+  "status": "success",
+  "payload": { "id": 1, "price": 25, "...": "..." }
+}
+```
+
+**Respuesta (404) — el servicio no existe:**
+```json
+{
+  "status": "error",
+  "message": "Servicio con id 1 no encontrado"
+}
+```
+
+### `DELETE /api/services/:sid`
+
+Elimina el servicio con el `id` indicado.
+
+**Respuesta (200):**
+```json
+{
+  "status": "success",
+  "message": "Servicio con id 3 eliminado correctamente"
+}
+```
+
+**Respuesta (404) — el servicio no existe:**
+```json
+{
+  "status": "error",
+  "message": "Servicio con id 3 no encontrado"
+}
+```
+
+## Estructura del proyecto
+
+```
+src/
+  config/env.config.js       # validación de variables de entorno
+  managers/ServiceManager.js # lógica de negocio del recurso services
+  routes/services.router.js  # rutas REST del recurso services
+  data/services.json         # datos iniciales
+  app.js                     # configuración de la app Express
+  server.js                  # arranque del servidor
+package.json
+.env.example
+.gitignore
+README.md
 ```
