@@ -1,32 +1,47 @@
-import fs from "fs";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "url";
 import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class ServiceManager {
+export class ServiceManager {
   constructor() {
-    const rutaJson = path.join(__dirname, "../data/services.json");
-    const contenido = fs.readFileSync(rutaJson, "utf-8");
-    const datos = JSON.parse(contenido);
-    this.services = datos;
+    const filePath = path.join(__dirname, "../data/services.json");
+    this.filePath = filePath;
   }
 
-  getServices() {
-    return this.services;
+  async readServices() {
+    try {
+      const data = await fs.readFile(this.filePath, "utf-8");
+      return JSON.parse(data);
+    } catch (error) {
+      console.log(error.message);
+      return [];
+    }
   }
 
-  getServiceById(id) {
-    id = parseInt(id);
-    const resultado = this.services.find((service) => service.id === id);
-    if (!resultado) {
+  async writeServices(services) {
+    await fs.writeFile(this.filePath, JSON.stringify(services, null, 2));
+  }
+
+  async getServices() {
+    const services = await this.readServices();
+    return services;
+  }
+
+  async getServiceById(id) {
+    const services = await this.readServices();
+    const service = services.find((service) => service.id === Number(id));
+
+    if (!service) {
       return null;
     }
-    return resultado;
+    return service;
   }
 
-  addService(serviceData) {
+  async addService(serviceData) {
+    const services = await this.getServices();
     const requiredFields = [
       "name",
       "description",
@@ -49,39 +64,48 @@ class ServiceManager {
       );
     }
 
-    const ids = this.services.map((service) => service.id);
+    const ids = services.map((service) => service.id);
     const maxId = ids.length > 0 ? Math.max(...ids) : 0;
     const newId = maxId + 1;
 
-    const newService = { id: newId, ...serviceData };
+    const newService = { ...serviceData, id: newId };
 
-    this.services.push(newService);
+    services.push(newService);
+
+    await this.writeServices(services);
 
     return newService;
   }
 
-  updateService(id, updatedData) {
+  async updateService(id, updatedData) {
+    const services = await this.getServices();
     id = parseInt(id);
-    const index = this.services.findIndex((service) => service.id === id);
+    const index = services.findIndex((service) => service.id === id);
 
     if (index === -1) {
       throw new Error(`Servicio con id ${id} no encontrado`);
     }
 
-    this.services[index] = { ...this.services[index], ...updatedData, id };
+    services[index] = { ...services[index], ...updatedData, id };
 
-    return this.services[index];
+    await this.writeServices(services);
+
+    return services[index];
   }
 
-  deleteService(id) {
+  async deleteService(id) {
+    const services = await this.getServices();
+
     id = parseInt(id);
-    const index = this.services.findIndex((service) => service.id === id);
+    const index = services.findIndex((service) => service.id === id);
 
     if (index === -1) {
       throw new Error(`Servicio con id ${id} no encontrado`);
     }
 
-    this.services.splice(index, 1);
+    services.splice(index, 1);
+
+    await this.writeServices(services);
 
     return { message: `Servicio con id ${id} eliminado correctamente` };
   }
