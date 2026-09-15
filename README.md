@@ -89,7 +89,7 @@ Devuelve todos los servicios. Acepta filtros opcionales por query params, combin
 ```json
 {
   "status": "success",
-  "services": [
+  "payload": [
     {
       "id": 1,
       "name": "Corte clásico",
@@ -111,7 +111,7 @@ Devuelve el servicio con el `id` indicado.
 ```json
 {
   "status": "success",
-  "services": { "id": 1, "name": "Corte clásico", "...": "..." }
+  "payload": { "id": 1, "name": "Corte clásico", "...": "..." }
 }
 ```
 
@@ -143,7 +143,7 @@ Crea un nuevo servicio. El `id` se genera automáticamente; todos los demás cam
 ```json
 {
   "status": "success",
-  "services": {
+  "payload": {
     "id": 4,
     "name": "Corte de cabello",
     "description": "Corte de cabello para hombres y mujeres",
