@@ -16,5 +16,32 @@
     "price": 20,
     "category": "Cabello",
     "available": true
+  },
+  {
+    "id": 3,
+    "name": "Corte de cabello",
+    "description": "Corte de cabello para hombres y mujeres",
+    "duration": 50,
+    "price": 20,
+    "category": "Cabello",
+    "available": true
+  },
+  {
+    "id": 4,
+    "name": "Corte de cabello",
+    "description": "Corte de cabello para hombres y mujeres",
+    "duration": 50,
+    "price": 20,
+    "category": "Cabello",
+    "available": true
+  },
+  {
+    "name": "Corte de cabello",
+    "description": "Corte de cabello para hombres y mujeres",
+    "duration": 50,
+    "price": 20,
+    "category": "Cabello",
+    "available": true,
+    "id": 5
   }
 ]

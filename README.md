@@ -47,6 +47,17 @@ npm run dev
 
 Esto arranca el servidor Express en el puerto configurado (`http://localhost:8080` por defecto).
 
+## Arquitectura del proyecto
+
+El código se organiza en 3 capas con responsabilidades bien definidas:
+
+| Capa | Responsabilidad |
+|------|-------------------|
+| **Routers** (`src/routes/`) | Definen las URLs y métodos HTTP, y delegan cada endpoint a su función controller correspondiente. No contienen lógica de negocio. |
+| **Controllers** (`src/controllers/`) | Leen `req.params`, `req.query` y `req.body`, llaman al manager correspondiente, y arman la respuesta con `res.status().json()`. No acceden directamente a los archivos de datos. |
+| **Managers** (`src/managers/`) | Contienen la lógica de negocio y el acceso a los archivos JSON (`fs`). No conocen `req` ni `res`. |
+
+
 ## Recurso: `services`
 
 Cada servicio tiene la siguiente forma:
@@ -286,13 +297,33 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 { "status": "error", "message": "No se encontro el booking con id: 99" }
 ```
 
-## Estructura del proyecto
-
-```
-src/ app.js / server.js routes/       → services.router.js, bookings.router.js managers/     → ServiceManager.js, BookingManager.js data/         → services.json, bookings.json config/       → env.config.js package.json / .gitignore / README.md
-```
-
 ## Managers
 
 - **`ServiceManager`**: gestiona `services.json` — `getServices`, `getServiceById`, `addService`, `updateService`, `deleteService`.
 - **`BookingManager`**: gestiona `bookings.json` — `createBooking`, `getBookingById`, `addServiceToBooking`. Recibe una instancia de `ServiceManager` para validar que los servicios existan antes de agregarlos a una reserva.
+
+## Estructura del proyecto
+
+```
+src/  config/env.config.js
+  controllers/
+    services.controller.js
+    bookings.controller.js
+  managers/
+    ServiceManager.js
+    BookingManager.js
+  routes/
+    services.router.js
+    bookings.router.js
+  data/
+    services.json
+    bookings.json
+  app.js
+  server.js
+package.json
+.env.example
+.gitignore
+README.md
+```
+
+

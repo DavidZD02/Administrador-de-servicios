@@ -92,7 +92,7 @@ export class BookingManager {
       throw new Error(`No se encontro el booking con id: ${bookingId}`);
     }
 
-    const service = this.serviceManager.getServiceById(serviceId);
+    const service = await this.serviceManager.getServiceById(serviceId);
 
     if (!service) {
       throw new Error(`No se encontro el servicio con id: ${serviceId}`);
