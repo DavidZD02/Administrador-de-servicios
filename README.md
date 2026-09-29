@@ -49,13 +49,15 @@ Esto arranca el servidor Express en el puerto configurado (`http://localhost:808
 
 ## Arquitectura del proyecto
 
-El código se organiza en 3 capas con responsabilidades bien definidas:
+El código se organiza en **5 capas** con responsabilidades definidas. Cada capa solo conoce a la capa inmediatamente inferior — nunca "salta" niveles ni conoce los detalles internos de las capas de abajo.
 
 | Capa | Responsabilidad |
 |------|-------------------|
 | **Routers** (`src/routes/`) | Definen las URLs y métodos HTTP, y delegan cada endpoint a su función controller correspondiente. No contienen lógica de negocio. |
-| **Controllers** (`src/controllers/`) | Leen `req.params`, `req.query` y `req.body`, llaman al manager correspondiente, y arman la respuesta con `res.status().json()`. No acceden directamente a los archivos de datos. |
-| **Managers** (`src/managers/`) | Contienen la lógica de negocio y el acceso a los archivos JSON (`fs`). No conocen `req` ni `res`. |
+| **Controllers** (`src/controllers/`) | Leen `req.params`, `req.query` y `req.body`, llaman al service correspondiente, y arman la respuesta con `res.status().json()`. No acceden directamente a los archivos de datos ni contienen reglas de negocio. |
+| **Services** (`src/services/`) | Contienen la lógica de negocio: validaciones de campos requeridos, reglas como "si el servicio ya está en la reserva, incrementar `quantity` en vez de duplicarlo", y la decisión de qué error lanzar. No conocen `req` ni `res`, ni saben cómo se persisten los datos. |
+| **Repositories** (`src/repositories/`) | Actúan como intermediarios entre el Service y el DAO. Ofrecen métodos de acceso a datos (`getAll`, `getById`, `create`, `update`, `delete`) sin ninguna regla de negocio. No saben qué tecnología de persistencia hay por debajo. |
+| **DAO** (`src/dao/`) — *Data Access Object* | La única capa que sabe que los datos viven en archivos JSON. Lee y escribe directamente en `services.json`/`bookings.json` usando `fs/promises`. No contiene ninguna lógica de negocio ni validación. |
 
 
 ## Recurso: `services`
@@ -297,21 +299,36 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 { "status": "error", "message": "No se encontro el booking con id: 99" }
 ```
 
-## Managers
+## Capas por recurso
 
-- **`ServiceManager`**: gestiona `services.json` — `getServices`, `getServiceById`, `addService`, `updateService`, `deleteService`.
-- **`BookingManager`**: gestiona `bookings.json` — `createBooking`, `getBookingById`, `addServiceToBooking`. Recibe una instancia de `ServiceManager` para validar que los servicios existan antes de agregarlos a una reserva.
+- **`services`**
+  - `ServicesDAO`: lee/escribe `services.json` — `getAll`, `getById`, `create`, `update`, `delete`.
+  - `ServicesRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
+  - `ServicesService`: reglas de negocio — validación de campos requeridos en la creación, y decisión de qué error lanzar cuando un `id` no existe.
+- **`bookings`**
+  - `BookingsDAO`: lee/escribe `bookings.json` — `create`, `getById`, `update`.
+  - `BookingsRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
+  - `BookingsService`: reglas de negocio — validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido. Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
+
 
 ## Estructura del proyecto
 
 ```
-src/  config/env.config.js
+src/
+  config/
+    env.config.js
   controllers/
     services.controller.js
     bookings.controller.js
-  managers/
-    ServiceManager.js
-    BookingManager.js
+  services/
+    services.service.js
+    bookings.service.js
+  repositories/
+    services.repository.js
+    bookings.repository.js
+  dao/
+    services.dao.js
+    bookings.dao.js
   routes/
     services.router.js
     bookings.router.js
