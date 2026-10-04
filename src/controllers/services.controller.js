@@ -1,17 +1,5 @@
 export const getServices = (service) => async (req, res) => {
-  let services = await service.getServices();
-  const { category, available } = req.query;
-
-  if (category) {
-    services = services.filter((service) => service.category == category);
-  }
-
-  if (available) {
-    services = services.filter(
-      (service) => service.available === (available === "true"),
-    );
-  }
-
+  const services = await service.getServices(req.query);
   res.status(200).json({ status: "success", payload: services });
 };
 

@@ -4,8 +4,22 @@ export default class ServicesService {
     this.repository = repository;
   }
 
-  async getServices() {
-    return await this.repository.getAll();
+  async getServices(filters = {}) {
+    let services = await this.repository.getAll();
+
+    if (filters.category) {
+      services = services.filter(
+        (service) => service.category === filters.category,
+      );
+    }
+
+    if (filters.available) {
+      services = services.filter(
+        (service) => service.available === (filters.available === "true"),
+      );
+    }
+
+    return services;
   }
 
   async getServiceById(id) {

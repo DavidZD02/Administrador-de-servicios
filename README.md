@@ -1,13 +1,13 @@
-# Administrador-de-servicios
+# Sistema Backend de Turnos y Reservas
 
 ## Descripción
 
-API REST construida con Node.js, Express y el sistema de archivos (`fs`), que forma parte del Sistema Backend de Turnos y Reservas. Gestiona dos recursos principales:
-
+API REST construida con Node.js, Express y MongoDB (a través de Mongoose), que forma parte del Sistema Backend de Turnos y Reservas. Gestiona dos recursos principales:
+ 
 - **`services`**: los servicios disponibles para reservar.
 - **`bookings`**: las reservas que crean los clientes, cada una asociada a uno o más servicios.
 
-Ambos recursos persisten en archivos JSON (`src/data/services.json` y `src/data/bookings.json`), por lo que los datos **no se pierden al reiniciar el servidor**.
+Ambos recursos persisten en una base de datos **MongoDB Atlas**, gestionada a través de **Mongoose** como ODM (Object Data Modeling). El proyecto originalmente persistía los datos en archivos JSON (`src/data/services.json` y `src/data/bookings.json`) usando `fs`, y fue migrado a MongoDB manteniendo exactamente el mismo comportamiento externo de la API.
 
 ## Instalación
 1. Clonar el repositorio:
@@ -36,6 +36,8 @@ Ambos recursos persisten en archivos JSON (`src/data/services.json` y `src/data/
 |------------|------------------------------------------------|---------------|
 | `PORT`     | Puerto en el que corre la aplicación            | `8080`        |
 | `NODE_ENV` | Entorno de ejecución (`development`/`production`) | `development` |
+| `MONGO_URI` | Cadena de conexión a tu cluster de MongoDB Atlas  | `mongodb+srv://usuario:password@cluster0.xxxxx.mongodb.net/turnos-reservas` |
+
 
 Si falta alguna variable requerida, la aplicación no arrancará y mostrará un mensaje de error indicando cuál falta.
 
@@ -45,20 +47,27 @@ Si falta alguna variable requerida, la aplicación no arrancará y mostrará un 
 npm run dev
 ```
 
-Esto arranca el servidor Express en el puerto configurado (`http://localhost:8080` por defecto).
+Esto conecta a MongoDB y arranca el servidor Express en el puerto configurado (`http://localhost:8080` por defecto). Si todo sale bien, verás en consola:
+
+```
+Conexión a MongoDB exitosa
+Servidor corriendo en http://localhost:8080 🚀
+```
 
 ## Arquitectura del proyecto
 
-El código se organiza en **5 capas** con responsabilidades definidas. Cada capa solo conoce a la capa inmediatamente inferior — nunca "salta" niveles ni conoce los detalles internos de las capas de abajo.
-
+El código se organiza en capas con responsabilidades definidas. Cada capa solo conoce a la capa inmediatamente inferior — nunca "salta" niveles ni conoce los detalles internos de las capas de abajo.
+ 
 | Capa | Responsabilidad |
 |------|-------------------|
 | **Routers** (`src/routes/`) | Definen las URLs y métodos HTTP, y delegan cada endpoint a su función controller correspondiente. No contienen lógica de negocio. |
-| **Controllers** (`src/controllers/`) | Leen `req.params`, `req.query` y `req.body`, llaman al service correspondiente, y arman la respuesta con `res.status().json()`. No acceden directamente a los archivos de datos ni contienen reglas de negocio. |
+| **Controllers** (`src/controllers/`) | Leen `req.params`, `req.query` y `req.body`, llaman al service correspondiente, y arman la respuesta con `res.status().json()`. No acceden directamente a la base de datos ni contienen reglas de negocio. |
 | **Services** (`src/services/`) | Contienen la lógica de negocio: validaciones de campos requeridos, reglas como "si el servicio ya está en la reserva, incrementar `quantity` en vez de duplicarlo", y la decisión de qué error lanzar. No conocen `req` ni `res`, ni saben cómo se persisten los datos. |
 | **Repositories** (`src/repositories/`) | Actúan como intermediarios entre el Service y el DAO. Ofrecen métodos de acceso a datos (`getAll`, `getById`, `create`, `update`, `delete`) sin ninguna regla de negocio. No saben qué tecnología de persistencia hay por debajo. |
-| **DAO** (`src/dao/`) — *Data Access Object* | La única capa que sabe que los datos viven en archivos JSON. Lee y escribe directamente en `services.json`/`bookings.json` usando `fs/promises`. No contiene ninguna lógica de negocio ni validación. |
-
+| **DAO** (`src/dao/`) — *Data Access Object* | La única capa que sabe que los datos viven en MongoDB. Usa los modelos de Mongoose (`src/dao/models/`) para consultar y persistir documentos. No contiene ninguna lógica de negocio ni validación de reglas del dominio. |
+| **Modelos de Mongoose** (`src/dao/models/`) | Definen el `Schema` de cada colección (`services`, `bookings`, `messages`): forma de los documentos, tipos de datos y validaciones básicas (`required`, `ref`, etc.). |
+ 
+La migración de `fs` a MongoDB solo modificó la capa **DAO**; Routers, Controllers, Services y Repositories se mantuvieron intactos.
 
 ## Recurso: `services`
 
@@ -302,13 +311,13 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 ## Capas por recurso
 
 - **`services`**
-  - `ServicesDAO`: lee/escribe `services.json` — `getAll`, `getById`, `create`, `update`, `delete`.
+  - `ServicesDAO`: usa el modelo `Service` de Mongoose — `getAll` (`find`), `getById` (`findById`), `create` (`create`), `update` (`findByIdAndUpdate` con `{ new: true }`), `delete` (`findByIdAndDelete`).
   - `ServicesRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
   - `ServicesService`: reglas de negocio — validación de campos requeridos en la creación, y decisión de qué error lanzar cuando un `id` no existe.
 - **`bookings`**
-  - `BookingsDAO`: lee/escribe `bookings.json` — `create`, `getById`, `update`.
+  - `BookingsDAO`: usa el modelo `Booking` de Mongoose — `create`, `getById` (`findById`), `update` (`findByIdAndUpdate` con `{ new: true }`).
   - `BookingsRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
-  - `BookingsService`: reglas de negocio — validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido. Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
+  - `BookingsService`: reglas de negocio — validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido (comparando `ObjectId` con `.equals()`). Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
 
 
 ## Estructura del proyecto
@@ -317,6 +326,7 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 src/
   config/
     env.config.js
+    database.config.js
   controllers/
     services.controller.js
     bookings.controller.js
@@ -329,6 +339,10 @@ src/
   dao/
     services.dao.js
     bookings.dao.js
+    models/
+      service.model.js
+      booking.model.js
+      message.model.js
   routes/
     services.router.js
     bookings.router.js

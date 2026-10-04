@@ -50,13 +50,13 @@ export default class BookingsService {
     }
 
     const existService = booking.services.findIndex(
-      (es) => es.service === parseInt(serviceId),
+      (es) => es.service.equals(serviceId),
     );
 
-    if (existService !== -1) {
+    if (existService != -1) {
       booking.services[existService].quantity += 1;
     } else {
-      booking.services.push({ service: parseInt(serviceId), quantity: 1 });
+      booking.services.push({ service: (serviceId), quantity: 1 });
     }
 
     return this.repository.update(bookingId, booking);

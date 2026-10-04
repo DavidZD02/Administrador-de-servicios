@@ -1,5 +1,5 @@
 import "dotenv/config";
-const requiredEnvVars = ["PORT", "NODE_ENV"];
+const requiredEnvVars = ["PORT", "NODE_ENV", "MONGO_URI"];
 
 const missing = [];
 
@@ -17,4 +17,5 @@ if (missing.length > 0) {
 export const env = {
   PORT: process.env.PORT,
   NODE_ENV: process.env.NODE_ENV,
+  MONGO_URI: process.env.MONGO_URI,
 };
