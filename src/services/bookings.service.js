@@ -4,6 +4,10 @@ export default class BookingsService {
     this.servicesService = servicesService;
   }
 
+  async getAllBookings() {
+    return this.repository.getAll();
+  }
+
   async getBookingById(id) {
     return this.repository.getById(id);
   }

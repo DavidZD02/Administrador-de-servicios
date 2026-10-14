@@ -2,7 +2,7 @@ import Service from "./models/service.model.js";
 
 export default class ServicesDAO {
   async getAll() {
-    return await Service.find();
+    return await Service.find().lean();
   }
 
   async getById(id) {

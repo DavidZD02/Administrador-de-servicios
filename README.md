@@ -7,6 +7,12 @@ API REST construida con Node.js, Express y MongoDB (a través de Mongoose), que 
 - **`services`**: los servicios disponibles para reservar.
 - **`bookings`**: las reservas que crean los clientes, cada una asociada a uno o más servicios.
 
+Ofrece tres formas de interactuar con esos recursos:
+ 
+- **API REST** (`/api/...`): endpoints JSON para crear, consultar, actualizar y eliminar.
+- **Vistas del servidor** (`/views/...`): páginas HTML renderizadas con **Handlebars**, que muestran datos reales de la base de datos.
+- **Tiempo real** con **Socket.io**: cuando se crea un servicio, las vistas abiertas en el navegador se actualizan sin recargar la página.
+
 Ambos recursos persisten en una base de datos **MongoDB Atlas**, gestionada a través de **Mongoose** como ODM (Object Data Modeling). El proyecto originalmente persistía los datos en archivos JSON (`src/data/services.json` y `src/data/bookings.json`) usando `fs`, y fue migrado a MongoDB manteniendo exactamente el mismo comportamiento externo de la API.
 
 ## Instalación
@@ -53,6 +59,11 @@ Esto conecta a MongoDB y arranca el servidor Express en el puerto configurado (`
 Conexión a MongoDB exitosa
 Servidor corriendo en http://localhost:8080 🚀
 ```
+
+Rutas principales:
+ 
+- API: `http://localhost:8080/api/services` y `http://localhost:8080/api/bookings`
+- Vistas: `http://localhost:8080/views/services` y `http://localhost:8080/views/bookings`
 
 ## Arquitectura del proyecto
 
@@ -308,6 +319,34 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 { "status": "error", "message": "No se encontro el booking con id: 99" }
 ```
 
+## Vistas con Handlebars
+ 
+Las vistas son páginas HTML renderizadas en el servidor con **Handlebars** (`express-handlebars`). Los datos nunca están escritos a mano en las plantillas: siempre provienen de MongoDB a través de las capas `controller → service → repository → DAO → model`.
+ 
+| Ruta | Descripción |
+|------|--------------|
+| `GET /views/services` | Listado de servicios con nombre, descripción, duración, precio, categoría y disponibilidad. |
+| `GET /views/bookings` | Listado de reservas con id, cliente, fecha, hora y estado. |
+ 
+Configuración (en `src/app.js`):
+ 
+- Motor de vistas: `app.engine("handlebars", engine())` y `app.set("view engine", "handlebars")`.
+- Carpeta de plantillas: `src/views/`, con el layout `layouts/main.handlebars` que envuelve todas las páginas.
+- Archivos estáticos (`src/public/`): se sirven con `express.static`, por lo que `public/css/styles.css` y `public/js/socket.js` quedan disponibles como `/css/styles.css` y `/js/socket.js`.
+Los controllers de vistas (`src/controllers/views.controller.js`) solo llaman al service correspondiente y renderizan la plantilla; no contienen lógica de negocio.
+ 
+> Nota: los métodos `getAll` de los DAO usan `.lean()` para devolver objetos planos de JavaScript. Sin esto, Handlebars bloquea el acceso a las propiedades de los documentos de Mongoose ("not an own property") y la vista se muestra vacía.
+ 
+## Tiempo real con Socket.io
+ 
+Socket.io se configura en `src/server.js`: se crea sobre el servidor HTTP que devuelve `app.listen(...)`, y la instancia `io` se guarda en la app con `app.set("io", io)` para que los controllers puedan acceder a ella mediante `req.app.get("io")`.
+ 
+| Evento | Cuándo se emite | Datos |
+|--------|------------------|-------|
+| `service:created` | Al crear un servicio con éxito (`POST /api/services`). No se emite si la validación falla. | El servicio recién creado. |
+ 
+En el navegador, `src/public/js/socket.js` se conecta con `io()` y escucha `service:created`: al recibirlo, construye una nueva tarjeta con el mismo formato que renderiza Handlebars y la agrega al contenedor `#services-list`, **sin recargar la página**. Para probarlo, abre `/views/services` en el navegador y crea un servicio con Postman.
+
 ## Capas por recurso
 
 - **`services`**
@@ -322,6 +361,8 @@ Agrega un servicio a una reserva existente. Valida que ambos (reserva y servicio
 
 ## Estructura del proyecto
 
+## Estructura del proyecto
+ 
 ```
 src/
   config/
@@ -330,6 +371,7 @@ src/
   controllers/
     services.controller.js
     bookings.controller.js
+    views.controller.js
   services/
     services.service.js
     bookings.service.js
@@ -346,9 +388,17 @@ src/
   routes/
     services.router.js
     bookings.router.js
-  data/
-    services.json
-    bookings.json
+    views.router.js
+  views/
+    layouts/
+      main.handlebars
+    services.handlebars
+    bookings.handlebars
+  public/
+    css/
+      styles.css
+    js/
+      socket.js
   app.js
   server.js
 package.json

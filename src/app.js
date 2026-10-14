@@ -1,6 +1,8 @@
 import express from "express";
+import { engine } from 'express-handlebars';
 import createServiceRouter from "./routes/services.router.js";
 import createBookingRouter from "./routes/bookings.router.js";
+import createViewsRouter from "./routes/views.router.js";
 
 import ServicesDAO from "./dao/services.dao.js";
 import ServicesRepository from "./repositories/services.repository.js";
@@ -18,11 +20,15 @@ const bookingsDAO = new BookingsDAO();
 const bookingsRepository = new BookingsRepository(bookingsDAO);
 const booking = new BookingsService(bookingsRepository, service);
 
-
-
 const app = express();
 app.use(express.json());
+app.use(express.static("./src/public"));
 
+app.engine('handlebars', engine());
+app.set('view engine', 'handlebars');
+app.set('views', './src/views');
+
+app.use("/views", createViewsRouter(service, booking));
 app.use("/api/services", createServiceRouter(service));
 app.use("/api/bookings", createBookingRouter(booking));
 

@@ -1,0 +1,17 @@
+<h1>Mis reservas</h1>
+
+<div id="bookings-list">
+  {{#each bookings}}
+    <article class="booking-card" data-id="{{_id}}">
+      <h2>Reserva #{{_id}}</h2>
+
+      <p>👤 Cliente: {{clientName}}</p>
+
+      <p>📅 Fecha: {{date}}</p>
+
+      <p>🕒 Hora: {{time}}</p>
+
+      <p>Estado: {{status}}</p>
+    </article>
+  {{/each}}
+</div>

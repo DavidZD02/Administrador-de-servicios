@@ -2,6 +2,10 @@
 import Booking from "./models/booking.model.js";
 
 export default class BookingsDAO {
+  async getAll() {
+    return await Booking.find().lean();
+  }
+
   async getById(id) {
     try {
       return await Booking.findById(id);

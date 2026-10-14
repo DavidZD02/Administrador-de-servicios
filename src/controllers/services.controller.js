@@ -15,9 +15,10 @@ export const getServiceById = (service) => async (req, res) => {
 };
 
 export const createService = (service) => async (req, res) => {
-  const { name, description, duration, price, category, available } = req.body;
   try {
-    const newService = await service.createService(req.body);
+     const newService = await service.createService(req.body);
+    const io = req.app.get("io");
+    io.emit("service:created", newService);
     res.status(201).json({ status: "success", payload: newService });
   } catch (error) {
     res.status(400).json({ status: "error", message: error.message });
