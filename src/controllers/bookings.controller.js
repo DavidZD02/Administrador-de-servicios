@@ -9,7 +9,7 @@ export const createBooking = (booking) => async (req, res) => {
 
 export const getBookingById = (booking) => async (req, res) => {
   const { bid } = req.params;
-  const bookingById = await booking.getBookingById(bid);
+  const bookingById = await booking.getBookingByIdPopulated(bid);
   if (!bookingById) {
     return res
       .status(404)

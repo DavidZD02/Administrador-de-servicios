@@ -1,6 +1,18 @@
 import Service from "./models/service.model.js";
 
 export default class ServicesDAO {
+  async getPaginated(filter = {}, { sort = {}, skip = 0, limit = 10 } = {}) {
+    const services = await Service.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Service.countDocuments(filter);
+
+    return { services, total };
+  }
+
   async getAll() {
     return await Service.find().lean();
   }
@@ -9,7 +21,7 @@ export default class ServicesDAO {
     try {
       return await Service.findById(id);
     } catch (error) {
-      return null
+      return null;
     }
   }
 

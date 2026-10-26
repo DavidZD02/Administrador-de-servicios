@@ -4,6 +4,46 @@ export default class ServicesService {
     this.repository = repository;
   }
 
+  async getServicesPaginated(query = {}) {
+    const {
+      category,
+      available,
+      page = 1,
+      limit = 10,
+      sortBy = "name",
+      order = "asc",
+    } = query;
+
+    const filter = {};
+    if (category) {
+      filter.category = category;
+    }
+    if (available !== undefined) {
+      filter.available = available === "true";
+    }
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const sort = { [sortBy]: order === "asc" ? 1 : -1 };
+    const { services, total } = await this.repository.getPaginated(filter, {
+      sort,
+      skip,
+      limit: limitNum,
+    });
+    const totalPages = Math.ceil(total / limitNum);
+    return {
+      services,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
+      hasPrevPage: pageNum > 1,
+      hasNextPage: pageNum < totalPages,
+    };
+  }
+
   async getServices(filters = {}) {
     let services = await this.repository.getAll();
 

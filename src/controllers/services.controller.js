@@ -1,6 +1,12 @@
 export const getServices = (service) => async (req, res) => {
-  const services = await service.getServices(req.query);
-  res.status(200).json({ status: "success", payload: services });
+  const { services, ...pagination } =
+    await service.getServicesPaginated(req.query);
+
+  res.status(200).json({
+    status: "success",
+    payload: services,
+    ...pagination,
+  });
 };
 
 export const getServiceById = (service) => async (req, res) => {

@@ -14,6 +14,14 @@ export default class BookingsDAO {
     }
   }
 
+  async getByIdPopulated(id) {
+  try {
+    return await Booking.findById(id).populate("services.service").lean();
+  } catch (error) {
+    return null;
+  }
+}
+
   async create(bookingData) {
     return await Booking.create(bookingData);
   }

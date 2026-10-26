@@ -12,6 +12,10 @@ export default class BookingsService {
     return this.repository.getById(id);
   }
 
+  async getBookingByIdPopulated(id) {
+    return this.repository.getByIdPopulated(id);
+  }
+
   async createBooking(bookingData) {
     const requiredFields = [
       "clientName",
@@ -53,14 +57,14 @@ export default class BookingsService {
       throw new Error(`No se encontro el servicio con id: ${serviceId}`);
     }
 
-    const existService = booking.services.findIndex(
-      (es) => es.service.equals(serviceId),
+    const existService = booking.services.findIndex((es) =>
+      es.service.equals(serviceId),
     );
 
     if (existService != -1) {
       booking.services[existService].quantity += 1;
     } else {
-      booking.services.push({ service: (serviceId), quantity: 1 });
+      booking.services.push({ service: serviceId, quantity: 1 });
     }
 
     return this.repository.update(bookingId, booking);

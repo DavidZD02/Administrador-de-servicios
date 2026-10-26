@@ -4,6 +4,10 @@ export default class ServicesRepository {
     this.dao = dao;
   }
 
+  async getPaginated(filter = {}, options = {}) {
+    return await this.dao.getPaginated(filter, options);
+  }
+
   async getAll() {
     return await this.dao.getAll();
   }
