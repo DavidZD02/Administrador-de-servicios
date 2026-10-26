@@ -1,10 +1,11 @@
 {
-  "name": "clase_1",
+  "name": "administrador-de-servicios",
   "version": "1.0.0",
-  "description": "",
+  "description": "Sistema backend de turnos y reservas con Express, MongoDB, Handlebars y Socket.io",
   "main": "src/server.js",
   "scripts": {
-    "dev": "node ./src/server.js"
+    "start": "node ./src/server.js",
+    "dev": "node --watch ./src/server.js"
   },
   "keywords": [],
   "author": "",

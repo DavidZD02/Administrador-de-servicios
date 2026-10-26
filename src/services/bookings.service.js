@@ -5,7 +5,14 @@ export default class BookingsService {
   }
 
   async getAllBookings() {
-    return this.repository.getAll();
+    const bookings = await this.repository.getAll();
+    return bookings.map((booking) => ({
+      ...booking,
+      totalServices: booking.services.reduce(
+        (total, item) => total + item.quantity,
+        0,
+      ),
+    }));
   }
 
   async getBookingById(id) {

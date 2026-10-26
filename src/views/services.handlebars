@@ -1,5 +1,23 @@
 <h1>Servicios disponibles</h1>
 
+<form id="service-form" class="service-form">
+  <h2>Nuevo servicio</h2>
+
+  <input type="text" name="name" placeholder="Nombre" required />
+  <input type="text" name="description" placeholder="Descripción" required />
+  <input type="number" name="duration" placeholder="Duración (minutos)" min="1" required />
+  <input type="number" name="price" placeholder="Precio" min="0" step="any" required />
+  <input type="text" name="category" placeholder="Categoría" required />
+
+  <label>
+    <input type="checkbox" name="available" checked />
+    Disponible
+  </label>
+
+  <button type="submit">Crear servicio</button>
+  <p id="form-message" class="form-message"></p>
+</form>
+
 <div id="services-list">
   {{#each services}}
     <article class="service-card" data-id="{{_id}}">

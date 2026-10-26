@@ -437,8 +437,8 @@ Las vistas son páginas HTML renderizadas en el servidor con **Handlebars** (`ex
 
 | Ruta | Descripción |
 |------|--------------|
-| `GET /views/services` | Listado de servicios con nombre, descripción, duración, precio, categoría y disponibilidad. |
-| `GET /views/bookings` | Listado de reservas con id, cliente, fecha, hora y estado. |
+| `GET /views/services` | Listado de servicios con nombre, descripción, duración, precio, categoría y disponibilidad, más un **formulario** para crear servicios que envía los datos por Socket.io. |
+| `GET /views/bookings` | Listado de reservas con id, cliente, fecha, hora, cantidad total de servicios y estado. |
 
 Configuración (en `src/app.js`):
 
@@ -452,13 +452,32 @@ Los controllers de vistas (`src/controllers/views.controller.js`) solo llaman al
 
 ## Tiempo real con Socket.io
 
-Socket.io se configura en `src/server.js`: se crea sobre el servidor HTTP que devuelve `app.listen(...)`, y la instancia `io` se guarda en la app con `app.set("io", io)` para que los controllers puedan acceder a ella mediante `req.app.get("io")`.
+Socket.io se configura en `src/server.js`: se crea sobre el servidor HTTP que devuelve `app.listen(...)`, y la instancia `io` se guarda en la app con `app.set("io", io)` para que los controllers puedan acceder a ella mediante `req.app.get("io")`. De forma complementaria, `app.js` guarda el `ServicesService` con `app.set("serviceManager", service)` para que el handler de sockets cree servicios a través de las mismas capas que la API.
+
+### Servidor → cliente
 
 | Evento | Cuándo se emite | Datos |
 |--------|------------------|-------|
-| `service:created` | Al crear un servicio con éxito (`POST /api/services`). No se emite si la validación falla. | El servicio recién creado. |
+| `service:created` | Al crear un servicio con éxito, ya sea por la API (`POST /api/services`) o desde el formulario de la vista. No se emite si la validación falla. | El servicio recién creado. |
+| `booking:created` | Al crear una reserva con éxito (`POST /api/bookings`). | La reserva recién creada. |
+| `booking:updated` | Al sumar un servicio a una reserva con éxito (`POST /api/bookings/:bid/services/:sid`). | La reserva actualizada. |
 
-En el navegador, `src/public/js/socket.js` se conecta con `io()` y escucha `service:created`: al recibirlo, construye una nueva tarjeta con el mismo formato que renderiza Handlebars y la agrega al contenedor `#services-list`, **sin recargar la página**. Para probarlo, abre `/views/services` en el navegador y crea un servicio con Postman.
+### Cliente → servidor
+
+| Evento | Quién lo envía | Qué hace el servidor |
+|--------|-----------------|------------------------|
+| `service:create` | El formulario "Nuevo servicio" de `/views/services`. Envía `{ name, description, duration, price, category, available }`. | Valida los datos con el mismo `createServiceSchema` de Zod que usa la API, crea el servicio mediante `ServicesService` y emite `service:created` a todos los clientes. Responde al emisor con un *callback* de confirmación: `{ status: "success" }` o `{ status: "error", message }`. |
+
+### Qué hace el navegador
+
+`src/public/js/socket.js` se conecta con `io()` y:
+
+- Escucha `service:created`: agrega una tarjeta nueva en `#services-list`, con el mismo formato que renderiza Handlebars.
+- Escucha `booking:created`: agrega una tarjeta nueva en `#bookings-list`.
+- Escucha `booking:updated`: busca la tarjeta de esa reserva (por su `data-id`) y actualiza su cantidad total de servicios.
+- Envía `service:create` al enviar el formulario y muestra en pantalla el mensaje de éxito o de error recibido en la confirmación.
+
+Todo ocurre **sin recargar la página**. Para probarlo, abre `/views/services` o `/views/bookings` en dos pestañas y crea o modifica datos desde Postman o desde el formulario.
 
 ## Capas por recurso
 
@@ -469,7 +488,7 @@ En el navegador, `src/public/js/socket.js` se conecta con `io()` y escucha `serv
 - **`bookings`**
   - `BookingsDAO`: usa el modelo `Booking` de Mongoose — `getAll` (`find().lean()`), `create`, `getById` (`findById`, sin `populate`, usado internamente al agregar servicios), `getByIdPopulated` (`findById` con `populate("services.service")`, usado por la consulta pública de una reserva), `update` (`findByIdAndUpdate` con `{ new: true }`).
   - `BookingsRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
-  - `BookingsService`: reglas de negocio — validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido (comparando `ObjectId` con `.equals()`). Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
+  - `BookingsService`: reglas de negocio — `getAllBookings` agrega a cada reserva el total de servicios (`totalServices`) que muestran las vistas; validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido (comparando `ObjectId` con `.equals()`). Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
 
 Los DAO manejan además el caso de un `id` con formato inválido (`CastError` de Mongoose): lo capturan con `try/catch` en `getById` y `getByIdPopulated` y devuelven `null`, para que la API siga respondiendo `404` en vez de un error `500`.
 

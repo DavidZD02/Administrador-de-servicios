@@ -1,6 +1,8 @@
 export const createBooking = (booking) => async (req, res) => {
   try {
     const newBooking = await booking.createBooking(req.body);
+    const io = req.app.get("io");
+    io.emit("booking:created", newBooking);
     res.status(201).json({ status: "success", payload: newBooking });
   } catch (error) {
     res.status(400).json({ status: "error", message: error.message });
@@ -21,8 +23,10 @@ export const getBookingById = (booking) => async (req, res) => {
 export const addServiceToBooking = (booking) => async (req, res) => {
   const { bid, sid } = req.params;
   try {
-    const newBooking = await booking.addServiceToBooking(bid, sid);
-    res.status(201).json({ status: "success", payload: newBooking });
+    const updatedBooking = await booking.addServiceToBooking(bid, sid);
+    const io = req.app.get("io");
+    io.emit("booking:updated", updatedBooking);
+    res.status(201).json({ status: "success", payload: updatedBooking });
   } catch (error) {
     res.status(404).json({ status: "error", message: error.message });
   }

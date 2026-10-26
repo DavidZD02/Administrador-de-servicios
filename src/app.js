@@ -27,6 +27,7 @@ app.use(express.static("./src/public"));
 app.engine('handlebars', engine());
 app.set('view engine', 'handlebars');
 app.set('views', './src/views');
+app.set("serviceManager", service);
 
 app.use("/views", createViewsRouter(service, booking));
 app.use("/api/services", createServiceRouter(service));
