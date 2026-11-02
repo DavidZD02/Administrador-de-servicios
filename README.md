@@ -230,9 +230,9 @@ Crea un nuevo servicio. El `_id` lo genera MongoDB automáticamente; todos los d
 }
 ```
 
-### `PUT /api/services/:sid`
+### `PUT` y `PATCH /api/services/:sid`
 
-Actualiza un servicio existente. Acepta uno o varios campos; se validan con las mismas reglas que la creación, y es obligatorio enviar al menos uno.
+Actualiza un servicio existente. Ambos métodos comparten el mismo schema, controller y service: aceptan uno o varios campos (**actualización parcial**), se validan con las mismas reglas que la creación, y es obligatorio enviar al menos uno. Para modificar solo algunos campos, lo recomendable semánticamente es `PATCH`.
 
 **Body de ejemplo:**
 ```json
@@ -426,7 +426,7 @@ Cuando los datos no son válidos, la API responde `400` con un mensaje que indic
 | Operación | Esquema | Reglas principales |
 |-----------|----------|----------------------|
 | Crear servicio (`POST /api/services`) | `createServiceSchema` | `name`, `description` y `category`: texto no vacío. `duration`: entero ≥ 1. `price`: número ≥ 0. `available`: booleano. Todos obligatorios. |
-| Actualizar servicio (`PUT /api/services/:sid`) | `updateServiceSchema` | Mismas reglas, pero todos los campos son opcionales; se exige **al menos uno**. |
+| Actualizar servicio (`PUT` y `PATCH /api/services/:sid`) | `updateServiceSchema` | Mismas reglas, pero todos los campos son opcionales; se exige **al menos uno**. |
 | Consultar servicios (`GET /api/services`) | `getServicesQuerySchema` | `available`: `true`/`false`. `page`: entero ≥ 1. `limit`: entero entre 1 y 100. `sortBy`: `name`, `price`, `duration` o `category`. `order`: `asc` o `desc`. |
 | Crear reserva (`POST /api/bookings`) | `createBookingSchema` | `clientName`: texto no vacío. `clientEmail`: correo válido. `date`: formato `AAAA-MM-DD` y fecha real. `time`: formato `HH:mm`. `status`: `Agendado`, `Confirmado` o `Cancelado`. `services` (opcional): lista de `{ service: ObjectId, quantity: entero ≥ 1 }`. |
 | Agregar servicio a reserva (`POST /api/bookings/:bid/services/:sid`) | `addServiceToBookingParamsSchema` | `bid` y `sid`: `ObjectId` válidos (24 caracteres hexadecimales). |
@@ -438,7 +438,7 @@ Las vistas son páginas HTML renderizadas en el servidor con **Handlebars** (`ex
 | Ruta | Descripción |
 |------|--------------|
 | `GET /views/services` | Listado de servicios con nombre, descripción, duración, precio, categoría y disponibilidad, más un **formulario** para crear servicios que envía los datos por Socket.io. |
-| `GET /views/bookings` | Listado de reservas con id, cliente, fecha, hora, cantidad total de servicios y estado. |
+| `GET /views/bookings` | Listado de reservas con id, cliente, fecha, hora, cantidad total de servicios y estado. Las reservas se obtienen con `populate` de sus servicios. |
 
 Configuración (en `src/app.js`):
 
@@ -448,7 +448,7 @@ Configuración (en `src/app.js`):
 
 Los controllers de vistas (`src/controllers/views.controller.js`) solo llaman al service correspondiente y renderizan la plantilla; no contienen lógica de negocio.
 
-> Nota: los métodos `getAll` de los DAO usan `.lean()` para devolver objetos planos de JavaScript. Sin esto, Handlebars bloquea el acceso a las propiedades de los documentos de Mongoose ("not an own property") y la vista se muestra vacía.
+> Nota: los métodos `getAll` (servicios) y `getAllPopulated` (reservas) de los DAO usan `.lean()` para devolver objetos planos de JavaScript. Sin esto, Handlebars bloquea el acceso a las propiedades de los documentos de Mongoose ("not an own property") y la vista se muestra vacía.
 
 ## Tiempo real con Socket.io
 
@@ -486,9 +486,9 @@ Todo ocurre **sin recargar la página**. Para probarlo, abre `/views/services` o
   - `ServicesRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
   - `ServicesService`: reglas de negocio — `getServicesPaginated` arma el filtro, el orden y el `skip`, aplica los valores por defecto y calcula los metadatos de paginación; también la validación de campos requeridos en la creación y la decisión de qué error lanzar cuando un `id` no existe.
 - **`bookings`**
-  - `BookingsDAO`: usa el modelo `Booking` de Mongoose — `getAll` (`find().lean()`), `create`, `getById` (`findById`, sin `populate`, usado internamente al agregar servicios), `getByIdPopulated` (`findById` con `populate("services.service")`, usado por la consulta pública de una reserva), `update` (`findByIdAndUpdate` con `{ new: true }`).
+  - `BookingsDAO`: usa el modelo `Booking` de Mongoose — `getAllPopulated` (`find().populate("services.service").lean()`, usado por el listado general de reservas), `create`, `getById` (`findById`, sin `populate`, usado internamente al agregar servicios), `getByIdPopulated` (`findById` con `populate("services.service")`, usado por la consulta pública de una reserva), `update` (`findByIdAndUpdate` con `{ new: true }`).
   - `BookingsRepository`: intermediario entre el Service y el DAO, mismos métodos que el DAO.
-  - `BookingsService`: reglas de negocio — `getAllBookings` agrega a cada reserva el total de servicios (`totalServices`) que muestran las vistas; validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido (comparando `ObjectId` con `.equals()`). Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
+  - `BookingsService`: reglas de negocio — `getAllBookings` obtiene las reservas con sus servicios poblados (`getAllPopulated`) y agrega a cada una el total de servicios (`totalServices`) que muestran las vistas; validación de campos requeridos, forzar `services: []` por defecto, y la regla de incrementar `quantity` al agregar un servicio repetido (comparando `ObjectId` con `.equals()`). Recibe una instancia de `ServicesService` para validar que los servicios existan antes de agregarlos a una reserva.
 
 Los DAO manejan además el caso de un `id` con formato inválido (`CastError` de Mongoose): lo capturan con `try/catch` en `getById` y `getByIdPopulated` y devuelven `null`, para que la API siga respondiendo `404` en vez de un error `500`.
 
