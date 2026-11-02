@@ -3,8 +3,8 @@ export default class BookingsRepository {
     this.dao = dao;
   }
 
-  async getAll() {
-    return await this.dao.getAll();
+  async getAllPopulated() {
+    return await this.dao.getAllPopulated();
   }
 
   async getById(id) {

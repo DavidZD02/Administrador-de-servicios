@@ -5,7 +5,7 @@ export default class BookingsService {
   }
 
   async getAllBookings() {
-    const bookings = await this.repository.getAll();
+    const bookings = await this.repository.getAllPopulated();
     return bookings.map((booking) => ({
       ...booking,
       totalServices: booking.services.reduce(

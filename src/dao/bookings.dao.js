@@ -2,9 +2,9 @@
 import Booking from "./models/booking.model.js";
 
 export default class BookingsDAO {
-  async getAll() {
-    return await Booking.find().lean();
-  }
+  async getAllPopulated() {
+  return await Booking.find().populate("services.service").lean();
+}
 
   async getById(id) {
     try {
