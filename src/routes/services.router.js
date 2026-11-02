@@ -13,6 +13,7 @@ export default function createServiceRouter(serviceManager) {
   router.get("/", validate(getServicesQuerySchema, "query"), getServices(serviceManager));
   router.post("/", validate(createServiceSchema), createService(serviceManager));
   router.put("/:sid", validate(updateServiceSchema), updateService(serviceManager));
+  router.patch("/:sid", validate(updateServiceSchema), updateService(serviceManager));
   router.get("/:sid", getServiceById(serviceManager));
   router.delete("/:sid", deleteService(serviceManager));
 
